@@ -1,0 +1,68 @@
+#Punctuations Removal — Let’s remove punctuations because in my data the punctuations do not convey any meaning.
+
+## Remove Punctuations and change words to lower case
+def remove_punctuations(text):    
+    words=[word.lower() for word in text.split()] 
+    words=[w for word in words for w in re.sub(r'[^\w\s]','',word).split()]    
+    return words
+
+data["question_punctuation_removed"]=data["question"].apply(remove_punctuations)
+print (data["question_punctuation_removed"])
+
+***************************************************************************************************************************************
+
+#Stop Words removal– Let’s remove stopwords because these words usually support the main words and they themselves do not convey much information in the sentence.
+
+### Remove StopWords
+from nltk.corpus import stopwords
+stop = set(stopwords.words('english'))
+print (stop)
+def remove_stopwords(text):
+	modified_word_list=[word for word in text if word not in stop]
+	return modified_word_list
+
+data["question_stopword_removed"]=data["question_punctuation_removed"].apply(remove_stopwords)
+print (data["question_stopword_removed"])
+
+***************************************************************************************************************************************
+
+#Negation Handling– We will be changing negative words like “not”, ”haven’t”, “didn’t”etc by clubbing them with the next word and adding a not before them.
+#For example — “I don’t like you” is changed to “I not_like you”. This is important because when we would be tokenising (splitting the words) as features
+#the words “don’t” and “like” would be treated differently but now tokenising would treat ”not_like” as a single word.
+
+def negation_handling(words):
+    counter=False    
+    wlist=[]    
+    negations=["no","not","cant","cannot","never","less","without","barely","hardly","rarely","no","not","noway","didnt"]
+    #for words in wordlist:       
+    for i,j in enumerate(words):                           
+            if j in negations and i<len(words)-1:             
+                wlist.append(str(words[i]+'-'+words[i+1]))
+                counter=True
+            else:
+                if counter is False:                
+                    wlist.append(words[i])
+                else:
+                    counter=False
+    return wlist
+
+data["question_negated"]=data["question_punctuation_removed"].apply(negation_handling)
+print (data["question_negated"])
+
+***************************************************************************************************************************************
+
+#POS-based preprocessing – Usually we have seen that Nouns, Adjective, Adverbs, and Verbs present in the sentence usually depicts the important key terms in the sentence
+#such as the subject, action or intensity of the action. Thus in our pre processing step, we would only keep Nouns, Verbs, Adjectives, and Adverbs and remove words belonging
+#to other parts of the speech.
+
+from nltk.tag import pos_tag
+def descriptive_words(words):
+    meaningful_words=[]    
+    tags=['VB','VBP','VBD','VBG','VBN','JJ','JJR','JJS','RB','RBR','RBS','UH',"NN",'NNP']    
+    tagged_word=pos_tag(words)
+    for word in tagged_word:            
+        if word[1] in tags:
+            meaningful_words.append(word[0])
+    return meaningful_words 
+data["question_descriptive"]=data["question_negated"].apply(descriptive_words)
+print (data["question_descriptive"])
